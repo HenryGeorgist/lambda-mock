@@ -1,28 +1,31 @@
-FROM osgeo/gdal:alpine-normal-3.2.1 as build
+FROM golang:1.18-alpine3.14 AS dev
+RUN apk add --no-cache git
+ENV PATH="/usr/local/go/bin:${PATH}"
 
-COPY --from=golang:1.18-alpine3.14 /usr/local/go/ /usr/local/go/
+# Hot-Reloader for development
+RUN go install github.com/githubnemo/CompileDaemon@latest
 
-RUN apk add --no-cache \
-    pkgconfig \
-    gcc \
-    libc-dev \
-    git
+# COPY ./configSchemas.json /shared/
 
-ENV GOROOT=/usr/local/go
-ENV GOPATH=/go
-ENV GO111MODULE="on"
-ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
-
-# Hot-Reloader
-RUN go install github.com/githubnemo/CompileDaemon@v1.4.0
-
-WORKDIR /workspaces
-COPY . /workspaces/
+COPY ./ /app
+WORKDIR /app
 
 RUN go mod download
+ENTRYPOINT /go/bin/CompileDaemon --build="go build -o lambda-emulator" --command="./lambda-emulator"
 
-RUN go build main.go
-ENTRYPOINT /go/bin/CompileDaemon --build="go build main.go" --command="./main -config=myconfig.json"
 
-# TODO: add prod build
-# FROM osgeo/gdal:alpine-normal-3.2.1 as prod
+# Testing container
+#FROM golang:1.18-alpine3.14 AS test
+# required cgo setting to run tests in container
+#ENV CGO_ENABLED 0 
+
+#WORKDIR /app
+#COPY --from=dev /app .
+#CMD ["sleep", "1d"]
+
+
+# Production container
+##FROM golang:1.18-alpine3.14 AS prod
+#WORKDIR /app
+#COPY --from=dev /app/lambda-emulator .
+#CMD [ "./lambda-emulator" ]
