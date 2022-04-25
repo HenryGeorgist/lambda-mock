@@ -11,7 +11,9 @@ COPY ./ /app
 WORKDIR /app
 
 RUN go mod download
-ENTRYPOINT /go/bin/CompileDaemon --build="go build -o lambda-emulator" --command="./lambda-emulator"
+RUN go mod tidy
+RUN go build main.go
+ENTRYPOINT /go/bin/CompileDaemon --build="go build main.go"
 
 
 # Testing container
@@ -25,7 +27,7 @@ ENTRYPOINT /go/bin/CompileDaemon --build="go build -o lambda-emulator" --command
 
 
 # Production container
-##FROM golang:1.18-alpine3.14 AS prod
-#WORKDIR /app
-#COPY --from=dev /app/lambda-emulator .
-#CMD [ "./lambda-emulator" ]
+FROM golang:1.18-alpine3.14 AS prod
+WORKDIR /app
+COPY --from=dev /app/main .
+CMD [ "./main" ]
