@@ -2,15 +2,57 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"log"
+	"os"
 
+	"github.com/USACE/filestore"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/client"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/usace/wat-api/utils"
 	"github.com/usace/wat-api/wat"
-
-	"fmt"
+	"golang.org/x/net/context"
 )
+
+// StartContainer uses the Go SDK to run Docker containers..option 1
+func StartContainer(imageWithTag string) (string, error) {
+	ctx := context.Background()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
+	if err != nil {
+		return "", err
+	}
+	reader, err := cli.ImagePull(ctx, imageWithTag, types.ImagePullOptions{})
+	if err != nil {
+		fmt.Println(err)
+		return "", err
+	}
+	io.Copy(os.Stdout, reader)
+	var chc *container.HostConfig
+	var nnc *network.NetworkingConfig
+	var vp *v1.Platform
+
+	resp, err := cli.ContainerCreate(ctx, &container.Config{
+		Image:        imageWithTag,
+		Cmd:          []string{"./main"},
+		Tty:          true,
+		AttachStdout: true,
+	}, chc, nnc, vp, "")
+	if err != nil {
+		return "", err
+	}
+
+	if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
+		return "", err
+	}
+
+	return resp.ID, err
+}
 
 func pollMessages(chn chan<- *sqs.Message, queue *sqs.SQS) {
 
@@ -34,14 +76,20 @@ func pollMessages(chn chan<- *sqs.Message, queue *sqs.SQS) {
 }
 
 // pullMessage...
-func pullMessage(msg *sqs.Message) error {
-	event := wat.EventConfiguration{}
-	err := json.Unmarshal([]byte(string(*msg.Body)), &event)
+func pullMessage(msg *sqs.Message, fs filestore.FileStore) error {
+	modelPayload := wat.ModelPayload{}
+	err := json.Unmarshal([]byte(string(*msg.Body)), &modelPayload)
 	if err != nil {
 		fmt.Println("unidentified message:", err)
 		return err
 	}
 	fmt.Println("message received", *msg.MessageId)
+	output, err := fs.PutObject(modelPayload.EventConfiguration.OutputDestination+"/payload.yml", []byte(string(*msg.Body)))
+	if err != nil {
+		fmt.Println("failure to push payload to filestore:", err)
+		return err
+	}
+	fmt.Println(output)
 	return nil
 }
 
@@ -71,13 +119,13 @@ func main() {
 		log.Fatal(err)
 		return
 	}
-
+	fs, err := loader.InitStore()
 	messages := make(chan *sqs.Message, 2)
 	go pollMessages(messages, queue)
 
 	for {
 		for message := range messages {
-			err = pullMessage(message)
+			err = pullMessage(message, fs)
 			if err != nil {
 				fmt.Println(err)
 			}

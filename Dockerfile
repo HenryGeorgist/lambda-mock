@@ -1,6 +1,19 @@
-FROM golang:1.18-alpine3.14 AS dev
+FROM osgeo/gdal:alpine-normal-3.2.1 as dev
+
+COPY --from=golang:1.18-alpine3.14 /usr/local/go/ /usr/local/go/
+
+RUN apk add --no-cache \
+    pkgconfig \
+    gcc \
+    libc-dev \
+    git
+
+ENV GOROOT=/usr/local/go
+ENV GOPATH=/go
+ENV GO111MODULE="on"
+ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 RUN apk add --no-cache git
-ENV PATH="/usr/local/go/bin:${PATH}"
+ENV CGO_ENABLED 0 
 
 # Hot-Reloader for development
 RUN go install github.com/githubnemo/CompileDaemon@latest
