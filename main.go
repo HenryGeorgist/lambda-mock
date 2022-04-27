@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -18,10 +17,11 @@ import (
 	"github.com/usace/wat-api/utils"
 	"github.com/usace/wat-api/wat"
 	"golang.org/x/net/context"
+	"gopkg.in/yaml.v2"
 )
 
 // StartContainer uses the Go SDK to run Docker containers..option 1
-func StartContainer(imageWithTag string) (string, error) {
+func StartContainer(imageWithTag string, payloadPath string, environmentVariables []string) (string, error) {
 	ctx := context.Background()
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
@@ -39,14 +39,21 @@ func StartContainer(imageWithTag string) (string, error) {
 
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
 		Image:        imageWithTag,
-		Cmd:          []string{"./main"},
+		Cmd:          []string{"./main", "-payload=" + payloadPath},
 		Tty:          true,
 		AttachStdout: true,
+		Env:          environmentVariables,
 	}, chc, nnc, vp, "")
 	if err != nil {
 		return "", err
 	}
-
+	//retrieve container messages and parrot to lambda standard out.
+	out, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{ShowStdout: true})
+	if err != nil {
+		return "", err
+	}
+	defer out.Close()
+	io.Copy(TestStOut{}, out)
 	if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
 		return "", err
 	}
@@ -76,20 +83,27 @@ func pollMessages(chn chan<- *sqs.Message, queue *sqs.SQS) {
 }
 
 // pullMessage...
-func pullMessage(msg *sqs.Message, fs filestore.FileStore) error {
+func pullMessage(msg *sqs.Message, fs filestore.FileStore, environmentVariables []string) error {
 	modelPayload := wat.ModelPayload{}
-	err := json.Unmarshal([]byte(string(*msg.Body)), &modelPayload)
+	err := yaml.Unmarshal([]byte(string(*msg.Body)), &modelPayload)
+	fmt.Println("recieved payload:", modelPayload)
 	if err != nil {
 		fmt.Println("unidentified message:", err)
 		return err
 	}
 	fmt.Println("message received", *msg.MessageId)
-	output, err := fs.PutObject(modelPayload.EventConfiguration.OutputDestination+"/payload.yml", []byte(string(*msg.Body)))
+	path := modelPayload.EventConfiguration.OutputDestination + "/payload.yml"
+	fmt.Println("putting object in fs:", path)
+	_, err = fs.PutObject(path, []byte(string(*msg.Body)))
 	if err != nil {
 		fmt.Println("failure to push payload to filestore:", err)
 		return err
 	}
-	fmt.Println(output)
+	_, err = StartContainer(modelPayload.PluginImageAndTag, path, environmentVariables)
+	if err != nil {
+		fmt.Println("failure start the container:", err)
+		return err
+	}
 	return nil
 }
 
@@ -125,7 +139,7 @@ func main() {
 
 	for {
 		for message := range messages {
-			err = pullMessage(message, fs)
+			err = pullMessage(message, fs, loader.EnvironmentVariables())
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -137,4 +151,12 @@ func main() {
 
 	}
 
+}
+
+type TestStOut struct {
+}
+
+func (ts TestStOut) Write(p []byte) (int, error) {
+	fmt.Println("lambda parroting from container:", string(p))
+	return 0, nil
 }
