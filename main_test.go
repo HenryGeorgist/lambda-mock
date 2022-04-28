@@ -25,7 +25,7 @@ func TestRunContainer(t *testing.T) {
 		fmt.Println(image.ID)
 	}
 	env := make([]string, 0)
-	resp, err := StartContainer("docker.io/williamlehman/fragilitycurveplugin:v0.0.1", "", env)
+	resp, err := StartContainer("docker.io/williamlehman/fragilitycurveplugin:v0.0.2", "", env)
 	if err != nil {
 		fmt.Println(err)
 		t.Fail()

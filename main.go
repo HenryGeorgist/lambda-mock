@@ -48,11 +48,11 @@ func StartContainer(imageWithTag string, payloadPath string, environmentVariable
 		return "", err
 	}
 	//retrieve container messages and parrot to lambda standard out.
-	out, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{ShowStdout: true})
+	out, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{ShowStdout: true, Follow: true})
 	if err != nil {
 		return "", err
 	}
-	defer out.Close()
+	//defer out.Close()
 	io.Copy(TestStOut{}, out)
 	if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
 		return "", err
@@ -92,7 +92,7 @@ func pullMessage(msg *sqs.Message, fs filestore.FileStore, environmentVariables 
 		return err
 	}
 	fmt.Println("message received", *msg.MessageId)
-	path := modelPayload.EventConfiguration.OutputDestination + "/payload.yml"
+	path := modelPayload.EventConfiguration.OutputDestination + "/" + modelPayload.Name + "_payload.yml"
 	fmt.Println("putting object in fs:", path)
 	_, err = fs.PutObject(path, []byte(string(*msg.Body)))
 	if err != nil {
