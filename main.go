@@ -27,6 +27,7 @@ func StartContainer(imageWithTag string, payloadPath string, environmentVariable
 	if err != nil {
 		return "", err
 	}
+	cli.NegotiateAPIVersion(ctx)
 	reader, err := cli.ImagePull(ctx, imageWithTag, types.ImagePullOptions{})
 	if err != nil {
 		fmt.Println(err)
