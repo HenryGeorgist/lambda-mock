@@ -843,6 +843,8 @@ github.com/usace/wat-api v0.0.0-20220426235236-ed18c1b51fa3 h1:tgvIPDKFYmLSPhfbH
 github.com/usace/wat-api v0.0.0-20220426235236-ed18c1b51fa3/go.mod h1:3I5LgCY+lSlmPwegDrX5LU0yBROPsaxCfNVBcH37uzk=
 github.com/usace/wat-api v0.0.0-20220430163913-3c963088c10c h1:DZIV98dHl+ottuR15DxtvyNcDKsfV5PCmUrApkGMLdc=
 github.com/usace/wat-api v0.0.0-20220430163913-3c963088c10c/go.mod h1:3I5LgCY+lSlmPwegDrX5LU0yBROPsaxCfNVBcH37uzk=
+github.com/usace/wat-api v0.0.0-20220501102854-56196b93edd0 h1:m7H+6MWicZQpRMpNFX9cIJb/i6Gaz57iQF722KS89z4=
+github.com/usace/wat-api v0.0.0-20220501102854-56196b93edd0/go.mod h1:3I5LgCY+lSlmPwegDrX5LU0yBROPsaxCfNVBcH37uzk=
 github.com/valyala/bytebufferpool v1.0.0/go.mod h1:6bBcMArwyJ5K/AmCkWv1jt77kVWyCJ6HpOuEn7z0Csc=
 github.com/valyala/fasttemplate v1.2.1/go.mod h1:KHLXt3tVN2HBp8eijSv/kGJopbvo7S+qRAEEKiv+SiQ=
 github.com/vishvananda/netlink v0.0.0-20181108222139-023a6dafdcdf/go.mod h1:+SR5DhBJrl6ZM7CoCKvpw5BKroDKQ+PJqOg65H/2ktk=

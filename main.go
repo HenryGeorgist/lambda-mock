@@ -93,7 +93,7 @@ func pullMessage(msg *sqs.Message, fs filestore.FileStore, environmentVariables 
 		return err
 	}
 	fmt.Println("message received", *msg.MessageId)
-	path := modelPayload.EventConfiguration.OutputDestination + "/" + modelPayload.Name + "_payload.yml"
+	path := modelPayload.EventConfiguration.OutputDestination.Authority + "/" + modelPayload.Name + "_payload.yml"
 	fmt.Println("putting object in fs:", path)
 	_, err = fs.PutObject(path, []byte(string(*msg.Body)))
 	if err != nil {
