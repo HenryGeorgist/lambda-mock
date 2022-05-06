@@ -94,12 +94,12 @@ func pullMessage(msg *sqs.Message, fs filestore.FileStore, environmentVariables 
 	}
 	fmt.Println("message received", *msg.MessageId)
 	path := modelPayload.EventConfiguration.OutputDestination.Authority + "/" + modelPayload.Name + "_payload.yml"
-	fmt.Println("putting object in fs:", path)
+	/*fmt.Println("putting object in fs:", path)
 	_, err = fs.PutObject(path, []byte(string(*msg.Body)))
 	if err != nil {
 		fmt.Println("failure to push payload to filestore:", err)
 		return err
-	}
+	}*/
 	_, err = StartContainer(modelPayload.PluginImageAndTag, path, environmentVariables)
 	if err != nil {
 		fmt.Println("failure start the container:", err)
