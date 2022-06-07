@@ -12,8 +12,6 @@ ENV GOROOT=/usr/local/go
 ENV GOPATH=/go
 ENV GO111MODULE="on"
 ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
-RUN apk add --no-cache git
-ENV CGO_ENABLED 0 
 
 # Hot-Reloader for development
 RUN go install github.com/githubnemo/CompileDaemon@latest

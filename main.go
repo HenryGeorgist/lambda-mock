@@ -14,8 +14,8 @@ import (
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/usace/wat-api/model"
 	"github.com/usace/wat-api/utils"
-	"github.com/usace/wat-api/wat"
 	"golang.org/x/net/context"
 	"gopkg.in/yaml.v2"
 )
@@ -95,7 +95,7 @@ func pollMessages(chn chan<- *sqs.Message, queue *sqs.SQS) {
 
 // pullMessage...
 func pullMessage(msg *sqs.Message, fs filestore.FileStore, environmentVariables []string) error {
-	modelPayload := wat.ModelPayload{}
+	modelPayload := model.PayloadMessage{}
 	err := yaml.Unmarshal([]byte(string(*msg.Body)), &modelPayload)
 	fmt.Println("recieved payload:", modelPayload)
 	if err != nil {
@@ -103,14 +103,8 @@ func pullMessage(msg *sqs.Message, fs filestore.FileStore, environmentVariables 
 		return err
 	}
 	fmt.Println("message received", *msg.MessageId)
-	path := modelPayload.EventConfiguration.OutputDestination.Authority + "/" + modelPayload.Name + "_payload.yml"
-	/*fmt.Println("putting object in fs:", path)
-	_, err = fs.PutObject(path, []byte(string(*msg.Body)))
-	if err != nil {
-		fmt.Println("failure to push payload to filestore:", err)
-		return err
-	}*/
-	_, err = StartContainer(modelPayload.PluginImageAndTag, path, environmentVariables)
+
+	_, err = StartContainer(modelPayload.Plugin.ImageAndTag, modelPayload.PayloadPath, environmentVariables)
 	if err != nil {
 		fmt.Println("failure start the container:", err)
 		return err
