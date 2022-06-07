@@ -58,6 +58,16 @@ func StartContainer(imageWithTag string, payloadPath string, environmentVariable
 	if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
 		return "", err
 	}
+	statuschn, errchn := cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
+	select {
+	case err := <-errchn:
+		if err != nil {
+			log.Fatal(err)
+		}
+	case status := <-statuschn:
+		log.Printf("status.StatusCode: %#+v\n", status.StatusCode)
+		cli.ContainerRemove(ctx, resp.ID, types.ContainerRemoveOptions{})
+	}
 
 	return resp.ID, err
 }
