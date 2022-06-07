@@ -66,7 +66,7 @@ func StartContainer(imageWithTag string, payloadPath string, environmentVariable
 		}
 	case status := <-statuschn:
 		log.Printf("status.StatusCode: %#+v\n", status.StatusCode)
-		cli.ContainerRemove(ctx, resp.ID, types.ContainerRemoveOptions{})
+		//cli.ContainerRemove(ctx, resp.ID, types.ContainerRemoveOptions{})
 	}
 
 	return resp.ID, err
